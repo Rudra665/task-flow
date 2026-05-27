@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@layer base {
+	:root {
+		--page-bg: #f5f7fb;
+		--page-fg: #0f172a;
+		--surface: #ffffff;
+		--surface-2: #f8fafc;
+		--surface-3: #eef2ff;
+		--border-color: #dbe4f0;
+		--muted: #64748b;
+		--muted-2: #94a3b8;
+		--primary: #7c3aed;
+		--primary-contrast: #ffffff;
+		--primary-soft: rgba(124, 58, 237, 0.12);
+		--shadow-color: rgba(15, 23, 42, 0.08);
+		color-scheme: light;
+	}
+
+	:root[data-theme="dark"] {
+		--page-bg: #020617;
+		--page-fg: #e2e8f0;
+		--surface: #0f172a;
+		--surface-2: #111827;
+		--surface-3: #1e293b;
+		--border-color: rgba(148, 163, 184, 0.18);
+		--muted: #94a3b8;
+		--muted-2: #cbd5e1;
+		--primary: #a855f7;
+		--primary-contrast: #ffffff;
+		--primary-soft: rgba(168, 85, 247, 0.18);
+		--shadow-color: rgba(0, 0, 0, 0.35);
+		color-scheme: dark;
+	}
+
+	html {
+		scroll-behavior: smooth;
+		background: var(--page-bg);
+		color: var(--page-fg);
+	}
+
+	body {
+		margin: 0;
+		min-width: 320px;
+		min-height: 100vh;
+		background:
+			radial-gradient(
+				circle at top,
+				var(--primary-soft),
+				transparent 40%
+			),
+			linear-gradient(
+				180deg,
+				var(--page-bg) 0%,
+				var(--page-bg) 48%,
+				var(--surface-2) 100%
+			);
+		color: var(--page-fg);
+		font-family:
+			Inter,
+			system-ui,
+			-apple-system,
+			BlinkMacSystemFont,
+			"Segoe UI",
+			sans-serif;
+		text-rendering: optimizeLegibility;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
+	* {
+		box-sizing: border-box;
+	}
+
+	button,
+	input,
+	select,
+	textarea {
+		font: inherit;
+	}
+
+	::selection {
+		background: rgba(168, 85, 247, 0.45);
+		color: #fff;
+	}
+	::-webkit-calendar-picker-indicator {
+		display: none;
+	}
+	::-webkit-calendar-picker-indicator:hover {
+		cursor: pointer;
+		filter: invert(0.5); /* Changes icon color */
+		padding: 5px;
+		border-radius: 8px;
+	}
+}
