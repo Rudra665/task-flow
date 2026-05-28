@@ -3,7 +3,7 @@ import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
-import process from "node:process";
+// import process from "node:process";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
@@ -12,15 +12,10 @@ import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 
 const app = express();
 
-const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
-	.split(",")
-	.map((origin) => origin.trim())
-	.filter(Boolean);
-
 app.use(helmet());
 app.use(
 	cors({
-		origin: allowedOrigins,
+		origin: "*",
 		credentials: true,
 	}),
 );

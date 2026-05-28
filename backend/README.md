@@ -22,6 +22,8 @@ Express.js + MongoDB API for the Task Flow application.
 
 > If MongoDB is unavailable during development, the backend falls back to in-memory storage so the API still starts and the routes remain usable.
 
+> For deployment, set `CORS_ORIGIN` on Render to your frontend URL if you want to lock the API to a specific site. The backend also allows common deployment origins like Vercel, Netlify, Render, localhost, and `127.0.0.1`.
+
 ## Scripts
 
 - `npm run dev` — run with nodemon
