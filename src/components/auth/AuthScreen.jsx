@@ -114,7 +114,7 @@ function AuthScreen({ mode, onModeChange, onSubmit }) {
 								className="w-fit gap-2 px-3 py-1.5 text-[21px] uppercase"
 							>
 								<img
-									src="../src/assets/logo.png"
+									src="/logo.png"
 									alt="Task Flow"
 									className="h-10 w-10"
 								/>{" "}
