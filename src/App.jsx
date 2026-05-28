@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { LoginPage } from "./pages/LoginPage.jsx";
 import { TaskPage } from "./pages/TaskPage.jsx";
 import { useTaskApp } from "./context/TaskContext.jsx";
+import { ApiAlerts } from "./components/ui/api-alerts.jsx";
 import "./App.css";
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
 
 	return (
 		<BrowserRouter>
+			<ApiAlerts />
 			<Routes>
 				<Route
 					path="/"

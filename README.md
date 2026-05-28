@@ -101,17 +101,6 @@ Tasks use this shape:
 - MongoDB may be unavailable during development, so the backend can fall back to in-memory storage.
 - Client-side routes should be preserved on deployment, so `vercel.json` should remain in place.
 
-## Evaluation summary
-
-- **Code quality and structure:** Feature logic is split across reusable components, a context provider, and API services.
-- **UI responsiveness and user experience:** The dashboard is responsive and supports grid, list, and calendar views.
-- **API design and integration:** The backend exposes clean REST endpoints and the frontend supports both backend and local fallback modes.
-- **Authentication implementation:** JWT-based auth is used for protected routes.
-- **Database design:** MongoDB models are straightforward, with a shared board approach for visibility across users.
-- **Error handling:** Centralized API error handling keeps responses predictable.
-- **Performance optimization:** Local fallback and optimistic task updates reduce perceived latency.
-- **Best development practices:** The project uses linting, build checks, Swagger docs, and a Postman collection.
-
 ## Demo credentials
 
 Use these credentials for the local fallback flow:

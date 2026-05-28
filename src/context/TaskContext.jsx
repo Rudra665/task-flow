@@ -52,8 +52,8 @@ export function TaskAppProvider({ children }) {
 	const [isBootstrapping, setIsBootstrapping] = useState(true);
 	const [connectionMode] = useState(initialConnectionMode);
 	const [error, setError] = useState("");
+	const [errorType, setErrorType] = useState("error"); // ← new
 	const [theme, setTheme] = useState(getInitialTheme);
-
 	useEffect(() => {
 		if (typeof window === "undefined") return;
 
@@ -107,14 +107,18 @@ export function TaskAppProvider({ children }) {
 	// Authenticate (login or signup). Updates local session state and
 	// refreshes the users and tasks lists after successful authentication.
 	const handleAuthenticate = async (mode, payload) => {
-		setError("");
-
 		try {
 			const authenticatedUser = await authenticate(mode, payload);
 			setUser(authenticatedUser);
 			setUsers(await getUsers());
 			const nextTasks = await getTasks(authenticatedUser.id);
 			setTasks(nextTasks);
+			setError(
+				!authenticatedUser
+					? "Authentication failed."
+					: "Logged in successfully.",
+			);
+			setErrorType(!authenticatedUser ? "error" : "success");
 			return authenticatedUser;
 		} catch (authError) {
 			setError(authError.message || "Unable to authenticate right now.");
@@ -144,15 +148,23 @@ export function TaskAppProvider({ children }) {
 	const handleCreateTask = async (payload) => {
 		if (!user) return null;
 
-		const createdTask = await addTask(user.id, payload);
-		setTasks((currentTasks) => [createdTask, ...currentTasks]);
-		return createdTask;
+		setError("");
+
+		try {
+			const createdTask = await addTask(user.id, payload);
+			setTasks((currentTasks) => [createdTask, ...currentTasks]);
+			return createdTask;
+		} catch (e) {
+			setError(e?.message || "Unable to create task.");
+			throw e;
+		}
 	};
 
 	// Update a task with optimistic UI. Reverts local state if the server
 	// update fails.
 	const handleUpdateTask = async (taskId, payload) => {
 		const previousTasks = tasks;
+		setError("");
 
 		setTasks((currentTasks) =>
 			currentTasks.map((task) =>
@@ -179,6 +191,7 @@ export function TaskAppProvider({ children }) {
 
 		try {
 			const updatedTask = await editTask(taskId, payload);
+
 			setTasks((currentTasks) =>
 				currentTasks.map((task) =>
 					task.id === taskId ? updatedTask : task,
@@ -187,6 +200,7 @@ export function TaskAppProvider({ children }) {
 			return updatedTask;
 		} catch (error) {
 			setTasks(previousTasks);
+			setError(error?.message || "Unable to update task.");
 			throw error;
 		}
 	};
@@ -233,6 +247,11 @@ export function TaskAppProvider({ children }) {
 		setTheme,
 		toggleTheme: handleToggleTheme,
 		error,
+		errorType, // ← only new line here
+		clearError: () => {
+			setError("");
+			setErrorType("error");
+		},
 		login: (payload) => handleAuthenticate("login", payload),
 		signup: (payload) => handleAuthenticate("signup", payload),
 		logout: handleLogout,
@@ -240,7 +259,6 @@ export function TaskAppProvider({ children }) {
 		updateTask: handleUpdateTask,
 		deleteTask: handleDeleteTask,
 		toggleTaskStatus: handleToggleTaskStatus,
-		clearError: () => setError(""),
 	};
 
 	return (
