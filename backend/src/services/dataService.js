@@ -33,6 +33,13 @@ async function ensureSharedBoardOwnership() {
 	}
 }
 
+/**
+ * Ensures all tasks have the shared board id set. In Mongo mode this will
+ * migrate documents missing the `board` field. In memory mode it patches the
+ * in-memory task list. This keeps the app working with a single shared board
+ * identity used across the frontend and backend.
+ */
+
 function serializeUser(user) {
 	if (!user) return null;
 
@@ -45,6 +52,11 @@ function serializeUser(user) {
 		updatedAt: user.updatedAt,
 	};
 }
+
+/**
+ * Convert internal user documents (mongo or memory) into a public-safe shape
+ * returned by the API and used by the frontend. Removes sensitive fields.
+ */
 
 function serializeTask(task) {
 	if (!task) return null;
@@ -87,6 +99,10 @@ function serializeTask(task) {
 }
 
 function normalizeMongoTask(doc) {
+	/**
+	 * Normalize a MongoDB Task document into the API response shape. Keeps the
+	 * public contract consistent between memory and mongo storage modes.
+	 */
 	return serializeTask({
 		id: doc._id.toString(),
 		title: doc.title,
@@ -374,3 +390,40 @@ export async function removeTask(ownerId, id) {
 	);
 	return memoryState.tasks.length !== before;
 }
+
+/**
+ * Normalize a MongoDB User document into the public user shape.
+ */
+
+/**
+ * Create a new user in the in-memory store. Used when the app is running in
+ * local mode for development or when MongoDB is unavailable.
+ */
+
+/**
+ * Create a user in MongoDB and return the normalized public user.
+ */
+
+/**
+ * Create a user. Chooses the appropriate storage implementation (mongo or
+ * in-memory) based on environment configuration.
+ */
+
+/**
+ * Find a user by email. Returns the raw user document (including password
+ * in Mongo mode) so that authentication helpers can verify the password.
+ */
+
+/**
+ * Find a user by id. Returns the user document or null if not found.
+ */
+
+/**
+ * Verify a user's password. Supports both mongo documents (with the
+ * `comparePassword` method) and local-memory hashed records.
+ */
+
+/**
+ * Convert internal user shapes into a public-facing user object. This is the
+ * canonical transformation used by controllers before sending JSON to clients.
+ */

@@ -118,7 +118,7 @@ function TaskList({ tasks, onCreate, onEdit, onDelete, onToggleStatus }) {
 						task.status === "completed" ? "success" : "warning"
 					}
 				>
-					{task.status}
+					{task.status.toUpperCase()}
 				</Badge>
 			),
 		},

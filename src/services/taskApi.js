@@ -11,6 +11,7 @@ const storageKeys = {
 };
 
 const validPriorities = new Set(["high", "medium", "low"]);
+// Every user sees the same shared board so task data stays consistent across sessions.
 const SHARED_BOARD_ID = "6a17f230353b560a212cc643";
 
 const isBrowser = typeof window !== "undefined";
@@ -70,6 +71,11 @@ function ensureLocalUsers() {
 	return nextUsers;
 }
 
+// Ensure demo/local tasks exist and normalize them into the app's canonical
+// task shape. This is used only in the 'local' connectionMode when
+// `VITE_API_BASE_URL` is not provided; it seeds demo data and upgrades any
+// legacy shapes to the current shared-board format.
+
 function ensureLocalTasks() {
 	const storedTasks = readStorage(storageKeys.tasks, []);
 	if (storedTasks.length > 0) {
@@ -115,6 +121,8 @@ function persistSession(session) {
 	removeStorage(storageKeys.token);
 }
 
+// Convert a user object into a public-safe shape by removing sensitive
+// fields like password. Used by both local and backend code paths.
 function normalizeUser(user) {
 	if (!user) return null;
 
@@ -123,6 +131,9 @@ function normalizeUser(user) {
 	return sanitizedUser;
 }
 
+// Convert a raw task object (from localStorage or the API) into the canonical
+// frontend task shape. Ensures status, priority, board and assignee fields
+// are present and normalized for UI consumption.
 function normalizeTask(task) {
 	const priority = validPriorities.has(task.priority)
 		? task.priority
@@ -158,6 +169,8 @@ function apiHeaders(extraHeaders = { "Access-Control-Allow-Origin": "*" }) {
 	};
 }
 
+// Wrapper around fetch for backend API calls. Attaches auth headers,
+// rejects on non-2xx responses and returns parsed JSON (or null for 204).
 async function apiRequest(path, options = {}) {
 	const response = await fetch(`${API_BASE_URL}${path}`, {
 		headers: apiHeaders(options.headers),
@@ -273,6 +286,12 @@ export function getStoredSessionToken() {
 	return readSession()?.token ?? readStorage(storageKeys.token, "");
 }
 
+/**
+ * authenticate(mode, payload)
+ * Authenticate (login/signup) helper. In backend mode this posts to the API
+ * and persists the returned session. In local mode it uses client-side
+ * stored users for demo purposes.
+ */
 export async function authenticate(mode, payload) {
 	if (API_BASE_URL) {
 		const path = mode === "signup" ? "/auth/register" : "/auth/login";
@@ -290,6 +309,12 @@ export async function authenticate(mode, payload) {
 	return mode === "signup" ? signupLocal(payload) : loginLocal(payload);
 }
 
+/**
+ * getCurrentUser()
+ * Returns the current authenticated user. If running against the backend
+ * this will call `/auth/me`; otherwise returns the locally persisted session
+ * user.
+ */
 export async function getCurrentUser() {
 	if (!API_BASE_URL) {
 		return getStoredSessionUser();
@@ -299,16 +324,26 @@ export async function getCurrentUser() {
 	return normalizeUser(data);
 }
 
-export async function getTasks(userId) {
+/**
+ * getTasks()
+ * Fetch tasks either from the backend `/tasks` endpoint or from localStorage.
+ * Always returns normalized task shapes for the UI.
+ */
+export async function getTasks() {
 	if (API_BASE_URL) {
 		const data = await apiRequest(`/tasks`);
 		const tasks = Array.isArray(data) ? data : (data?.tasks ?? []);
 		return tasks.map(normalizeTask);
 	}
 
-	return fetchLocalTasks(userId);
+	return fetchLocalTasks();
 }
 
+/**
+ * getUsers()
+ * Fetch the list of users for assignee pickers. Tries `/users` and falls
+ * back to `/auth/users` if necessary to support different backend layouts.
+ */
 export async function getUsers() {
 	if (API_BASE_URL) {
 		try {
@@ -337,6 +372,11 @@ export async function getUsers() {
 	return fetchLocalUsers();
 }
 
+/**
+ * addTask(userId, payload)
+ * Create a new task. Normalizes the payload and sends it to the backend in
+ * backend mode or stores it locally in local mode. Returns the created task.
+ */
 export async function addTask(userId, payload) {
 	if (API_BASE_URL) {
 		const normalizedPriority =
@@ -364,6 +404,12 @@ export async function addTask(userId, payload) {
 	return createLocalTask(userId, payload);
 }
 
+/**
+ * editTask(taskId, payload)
+ * Update an existing task. Normalizes incoming values and issues a PATCH to
+ * the backend or updates the local store accordingly. Returns the updated
+ * normalized task.
+ */
 export async function editTask(taskId, payload) {
 	if (API_BASE_URL) {
 		const normalizedPriority =
@@ -405,6 +451,11 @@ export async function editTask(taskId, payload) {
 	return updateLocalTask(taskId, payload);
 }
 
+/**
+ * removeTask(taskId)
+ * Delete a task by id. In backend mode it calls DELETE /tasks/:id; in local
+ * mode it removes the task from localStorage.
+ */
 export async function removeTask(taskId) {
 	const id =
 		typeof taskId === "object" && taskId !== null ? taskId.id : taskId;

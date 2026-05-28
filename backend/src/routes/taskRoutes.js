@@ -8,6 +8,9 @@ import {
 } from "../controllers/taskController.js";
 import { protectRoute } from "../middleware/authMiddleware.js";
 
+// Routes for task management. All task routes are protected by the
+// `protectRoute` middleware and operate against the shared board by
+// default. Controller functions are defined in `controllers/taskController.js`.
 const router = express.Router();
 
 router.use(protectRoute);

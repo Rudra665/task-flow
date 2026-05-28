@@ -12,6 +12,14 @@ import {
 const SHARED_BOARD_ID = "6a17f230353b560a212cc643";
 
 export const getTasks = asyncHandler(async (req, res) => {
+	/**
+	 * GET /api/tasks
+	 * Retrieve tasks for a board. Supports optional `status` query to filter by
+	 * `pending` or `completed`. This endpoint respects the shared board ID
+	 * default if none is supplied. The controller delegates data access to
+	 * `listTasks` in the data service and returns a JSON { tasks } object.
+	 * Authentication: protected (req.user required).
+	 */
 	const boardId = req.query.boardId ?? req.query.board ?? SHARED_BOARD_ID;
 	console.info("GET /api/tasks", {
 		boardId,
@@ -23,6 +31,11 @@ export const getTasks = asyncHandler(async (req, res) => {
 });
 
 export const getTaskById = asyncHandler(async (req, res) => {
+	/**
+	 * GET /api/tasks/:id
+	 * Return a single task by id. Uses `findTaskById` from the data service.
+	 * Returns 404 if the task cannot be found.
+	 */
 	const { id } = req.params;
 	const task = await findTaskById(req.user.id, id);
 
@@ -34,15 +47,16 @@ export const getTaskById = asyncHandler(async (req, res) => {
 });
 
 export const createTask = asyncHandler(async (req, res) => {
-	const {
-		title,
-		description,
-		dueDate,
-		status,
-		priority,
-		section,
-		assigneeId,
-	} = req.body;
+	/**
+	 * POST /api/tasks
+	 * Create a new task. Expects { title, description, dueDate, status, priority, assigneeId, boardId }
+	 * The controller validates required fields, resolves assignee by id and then
+	 * calls the `createTask` data service to persist the record (either in MongoDB
+	 * or in-memory during local mode). Returns the created task with normalized
+	 * fields.
+	 */
+	const { title, description, dueDate, status, priority, assigneeId } =
+		req.body;
 	const boardId = req.body.boardId ?? req.body.board ?? SHARED_BOARD_ID;
 
 	if (!title || !description || !dueDate) {
@@ -61,7 +75,6 @@ export const createTask = asyncHandler(async (req, res) => {
 		dueDate,
 		status,
 		priority,
-		section,
 		assigneeId: assignee.id ?? assignee._id?.toString?.() ?? req.user.id,
 	});
 
@@ -69,6 +82,14 @@ export const createTask = asyncHandler(async (req, res) => {
 });
 
 export const updateTask = asyncHandler(async (req, res) => {
+	/**
+	 * PATCH /api/tasks/:id
+	 * Update a task partially. Accepts fields such as title, description,
+	 * dueDate, status (pending/completed), priority, and assigneeId (or nested
+	 * assignee object). The controller normalizes nested assignee input and
+	 * removes nested structures before passing a clean payload to the data
+	 * service `updateTask` function.
+	 */
 	const { id } = req.params;
 	const assigneeId =
 		req.body.assigneeId ?? req.body.assignee?.id ?? req.body.assignee;

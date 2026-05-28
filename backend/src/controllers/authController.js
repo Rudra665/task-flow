@@ -19,6 +19,12 @@ function createToken(user) {
 }
 
 export const registerUser = asyncHandler(async (req, res) => {
+	/**
+	 * POST /api/auth/register
+	 * Register a new user. Expects { name, email, password }.
+	 * Validates input, ensures the email is not already registered, creates
+	 * the persisted user via the data service, and returns a token + user.
+	 */
 	const { name, email, password } = req.body;
 
 	if (!name || !email || !password) {
@@ -41,6 +47,12 @@ export const registerUser = asyncHandler(async (req, res) => {
 });
 
 export const loginUser = asyncHandler(async (req, res) => {
+	/**
+	 * POST /api/auth/login
+	 * Authenticate a user. Expects { email, password }.
+	 * Verifies credentials using the data service and returns a JWT token
+	 * plus a public user object on success.
+	 */
 	const { email, password } = req.body;
 
 	if (!email || !password) {
@@ -67,6 +79,11 @@ export const loginUser = asyncHandler(async (req, res) => {
 });
 
 export const getCurrentUser = asyncHandler(async (req, res) => {
+	/**
+	 * GET /api/auth/me
+	 * Return the current authenticated user's public profile. Protected route;
+	 * uses req.user populated by the auth middleware.
+	 */
 	const user = await findUserById(req.user.id);
 
 	if (!user) {

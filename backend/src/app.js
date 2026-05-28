@@ -3,7 +3,6 @@ import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
-// import process from "node:process";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
@@ -14,6 +13,7 @@ const app = express();
 
 app.set("etag", false);
 
+// Always return a fresh response so API reloads show a real 200 instead of a cached 304.
 app.use((req, res, next) => {
 	res.setHeader(
 		"Cache-Control",

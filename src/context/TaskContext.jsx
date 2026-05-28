@@ -13,6 +13,9 @@ import {
 	removeTask,
 } from "../services/taskApi.js";
 
+// TaskContext provides application-wide state for tasks, users, auth and
+// UI preferences. It exposes helpers that the UI uses to mutate tasks in an
+// optimistic fashion while persisting changes via the API client.
 const TaskContext = createContext(null);
 const initialStoredUser = getStoredSessionUser();
 const initialConnectionMode = getConnectionMode();
@@ -33,6 +36,14 @@ function getInitialTheme() {
 		: "light";
 }
 
+/**
+ * TaskAppProvider
+ * Wraps the app and provides task-related state and actions.
+ * Exposed actions include login/signup/logout, create/edit/delete tasks,
+ * toggle task status, and theme toggling. Handlers perform optimistic UI
+ * updates and fall back to stored local data when the backend is not
+ * available.
+ */
 export function TaskAppProvider({ children }) {
 	const [user, setUser] = useState(() => initialStoredUser);
 	const [tasks, setTasks] = useState([]);
@@ -93,6 +104,8 @@ export function TaskAppProvider({ children }) {
 		};
 	}, []);
 
+	// Authenticate (login or signup). Updates local session state and
+	// refreshes the users and tasks lists after successful authentication.
 	const handleAuthenticate = async (mode, payload) => {
 		setError("");
 
@@ -109,6 +122,7 @@ export function TaskAppProvider({ children }) {
 		}
 	};
 
+	// Clear session and reset client-side state.
 	const handleLogout = () => {
 		clearSession();
 		setUser(null);
@@ -117,12 +131,16 @@ export function TaskAppProvider({ children }) {
 		setFilter("all");
 	};
 
+	// Toggle between light/dark themes and persist preference to localStorage.
 	const handleToggleTheme = () => {
 		setTheme((currentTheme) =>
 			currentTheme === "dark" ? "light" : "dark",
 		);
 	};
 
+	// Create a new task and optimistically add it to the UI. The server or
+	// local store will return the authoritative task object which replaces
+	// the optimistic entry when the request completes.
 	const handleCreateTask = async (payload) => {
 		if (!user) return null;
 
@@ -131,6 +149,8 @@ export function TaskAppProvider({ children }) {
 		return createdTask;
 	};
 
+	// Update a task with optimistic UI. Reverts local state if the server
+	// update fails.
 	const handleUpdateTask = async (taskId, payload) => {
 		const previousTasks = tasks;
 
@@ -171,6 +191,7 @@ export function TaskAppProvider({ children }) {
 		}
 	};
 
+	// Delete a task optimistically and revert on failure.
 	const handleDeleteTask = async (taskId) => {
 		const id =
 			typeof taskId === "object" && taskId !== null ? taskId.id : taskId;
@@ -189,6 +210,8 @@ export function TaskAppProvider({ children }) {
 		}
 	};
 
+	// Toggle task status (pending <-> completed) using the same update
+	// pipeline so optimistic updates and server persistence are unified.
 	const handleToggleTaskStatus = async (task) => {
 		const nextStatus =
 			task.status === "completed" ? "pending" : "completed";

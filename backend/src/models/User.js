@@ -1,6 +1,10 @@
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 
+// User model stores registered users. Passwords are hashed before save and
+// are excluded from JSON outputs. The model provides a `comparePassword`
+// method used by the authentication flow.
+
 const userSchema = new mongoose.Schema(
 	{
 		name: {

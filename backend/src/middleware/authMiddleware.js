@@ -3,6 +3,12 @@ import process from "node:process";
 import { ApiError } from "../utils/ApiError.js";
 
 export function protectRoute(req, _res, next) {
+	/**
+	 * Middleware to protect routes. Expects a Bearer token in the
+	 * Authorization header. Verifies the JWT and attaches a minimal `req.user`
+	 * object with id/email/role for downstream controllers. On failure calls
+	 * next() with an ApiError(401).
+	 */
 	const authHeader = req.headers.authorization || "";
 	const [scheme, token] = authHeader.split(" ");
 

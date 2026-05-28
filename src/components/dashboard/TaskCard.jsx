@@ -30,9 +30,13 @@ function getPriorityVariant(priority) {
 	}
 }
 
-function formatPriority(priority) {
-	if (!priority) return "Medium";
-	return priority.charAt(0).toUpperCase() + priority.slice(1);
+function format(key, value) {
+	if (key == "status" && !value) {
+		return "Pending";
+	} else if (key == "priority" && !value) {
+		return "Medium";
+	}
+	return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function TaskCard({ task, onEdit, onDelete, onToggleStatus }) {
@@ -54,10 +58,10 @@ function TaskCard({ task, onEdit, onDelete, onToggleStatus }) {
 									{task.title}
 								</h3>
 								<Badge variant={statusTone}>
-									{task.status}
+									{format("status", task.status)}
 								</Badge>
 								<Badge variant={priorityTone}>
-									{formatPriority(task.priority)}
+									{format("priority", task.priority)}
 								</Badge>
 								<Badge variant="secondary">
 									{task.assigneeName ??

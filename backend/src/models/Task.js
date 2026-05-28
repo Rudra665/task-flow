@@ -1,5 +1,12 @@
 import mongoose from "mongoose";
 
+// Task schema represents a single task card in the shared board. Fields:
+// - owner: who created the task
+// - board: board id (shared across the app)
+// - assignee: user responsible for the task
+// - title/description/dueDate: core task metadata
+// - status: lane classification ('pending' | 'completed')
+// - priority: visual importance tag used in the UI
 const taskSchema = new mongoose.Schema(
 	{
 		owner: {

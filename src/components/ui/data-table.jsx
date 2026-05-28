@@ -18,8 +18,10 @@ function DataTable({
 		return emptyState ?? null;
 	}
 
+	// Keep table wrapper constrained to the section width. Horizontal scrolling
+	// is allowed on small screens so wide list tables stay inside the card.
 	return (
-		<div className="overflow-hidden rounded-3xl border border-(--border-color) bg-(--surface) shadow-sm">
+		<div className="w-full rounded-3xl border border-(--border-color) bg-(--surface) shadow-sm">
 			<Table className={tableClassName}>
 				<TableHeader>
 					<TableRow className="bg-(--surface-2) hover:bg-(--surface-2)">

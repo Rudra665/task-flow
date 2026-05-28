@@ -8,6 +8,8 @@ import {
 import { getUsers } from "../controllers/userController.js";
 import { protectRoute } from "../middleware/authMiddleware.js";
 
+// Authentication routes: registration, login and current-user lookup.
+// Registration and login are rate-limited to mitigate brute-force attacks.
 const router = express.Router();
 
 const authLimiter = rateLimit({

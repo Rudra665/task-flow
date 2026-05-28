@@ -186,8 +186,6 @@ function TaskDashboard({
 							},
 						)}
 					</nav>
-					<div></div>
-					<div></div>
 
 					<div className="mt-8 rounded-[1.75rem] bg-(--surface-2) p-5 text-(--page-fg) shadow-xl shadow-(color:--shadow-color)">
 						<div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-(--surface) text-lg font-semibold">
@@ -309,7 +307,7 @@ function TaskDashboard({
 
 					<StatsOverview taskCounts={taskCounts} />
 
-					<div className="mt-6 rounded-3xl border border-(--border-color) bg-(--surface) p-4 shadow-sm sm:p-6">
+					<div className="w-[92vw] mt-6 sm:w-full min-w-0 rounded-3xl border border-(--border-color) bg-(--surface) p-4 shadow-sm sm:p-6">
 						<div className="mb-5 flex flex-wrap items-center justify-between gap-3">
 							<div>
 								<h2 className="text-lg font-semibold text-(--page-fg)">
