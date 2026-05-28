@@ -30,6 +30,8 @@ Express.js + MongoDB API for the Task Flow application.
 
 ## API docs
 
+- Root health check: `GET /`
+- Health endpoint: `GET /health`
 - Swagger UI: `http://localhost:4000/api-docs`
 - Postman collection: `docs/task-flow.postman_collection.json`
 

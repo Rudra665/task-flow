@@ -31,6 +31,14 @@ app.get("/health", (_req, res) => {
 	res.status(200).json({ status: "ok" });
 });
 
+app.get("/", (_req, res) => {
+	res.status(200).json({
+		status: "ok",
+		message: "Task Flow backend is running",
+		docs: "/api-docs",
+	});
+});
+
 app.use(
 	"/api-docs",
 	swaggerUi.serve,
