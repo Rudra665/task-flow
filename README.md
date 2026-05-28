@@ -18,6 +18,10 @@ shadcn-style reusable components.
 2. Update `.env` if your backend runs on a different base URL.
 3. Start the development server.
 
+## Deployment note
+
+If you deploy the frontend to Vercel, keep the root `vercel.json` file in place so client-side routes like `/tasks` reload correctly instead of returning a 404. It rewrites unmatched paths to `index.html` for the React router.
+
 ## Demo credentials
 
 Use these credentials to try the local fallback flow:
