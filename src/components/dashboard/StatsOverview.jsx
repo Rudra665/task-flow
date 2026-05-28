@@ -15,19 +15,19 @@ function StatsOverview({ taskCounts }) {
 	];
 
 	return (
-		<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+		<div className="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
 			{cards.map((card) => (
 				<Card
 					key={card.label}
 					className="border-(--border-color) bg-(--surface)"
 				>
-					<CardContent className="p-5">
-						<div className="flex items-center justify-between gap-4">
+					<CardContent className="p-3 sm:p-4 lg:p-5">
+						<div className="flex items-center justify-between gap-2 sm:gap-4">
 							<div>
-								<p className="text-sm text-(--muted)">
+								<p className="text-xs text-(--muted) sm:text-sm">
 									{card.label}
 								</p>
-								<p className="mt-2 text-3xl font-bold  tracking-tight text-(--muted)">
+								<p className="mt-1 text-2xl font-bold tracking-tight text-(--muted) sm:mt-2 sm:text-3xl">
 									{card.value}
 								</p>
 							</div>

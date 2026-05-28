@@ -132,13 +132,43 @@ export function TaskAppProvider({ children }) {
 	};
 
 	const handleUpdateTask = async (taskId, payload) => {
-		const updatedTask = await editTask(taskId, payload);
+		const previousTasks = tasks;
+
 		setTasks((currentTasks) =>
 			currentTasks.map((task) =>
-				task.id === taskId ? updatedTask : task,
+				task.id === taskId
+					? {
+							...task,
+							...payload,
+							updatedAt: new Date().toISOString(),
+							status:
+								payload.status === "completed"
+									? "completed"
+									: payload.status === "pending"
+										? "pending"
+										: task.status,
+							priority: ["high", "medium", "low"].includes(
+								payload.priority,
+							)
+								? payload.priority
+								: task.priority,
+						}
+					: task,
 			),
 		);
-		return updatedTask;
+
+		try {
+			const updatedTask = await editTask(taskId, payload);
+			setTasks((currentTasks) =>
+				currentTasks.map((task) =>
+					task.id === taskId ? updatedTask : task,
+				),
+			);
+			return updatedTask;
+		} catch (error) {
+			setTasks(previousTasks);
+			throw error;
+		}
 	};
 
 	const handleDeleteTask = async (taskId) => {

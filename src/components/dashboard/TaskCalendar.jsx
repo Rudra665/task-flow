@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Badge } from "../ui/badge.jsx";
 import { Button } from "../ui/button.jsx";
 import { Card, CardContent } from "../ui/card.jsx";
 
@@ -33,6 +34,22 @@ function shortenTaskTitle(title, maxLength = 14) {
 	return title.length > maxLength
 		? `${title.slice(0, maxLength).trimEnd()}…`
 		: title;
+}
+
+function getPriorityVariant(priority) {
+	switch (priority) {
+		case "high":
+			return "destructive";
+		case "low":
+			return "secondary";
+		default:
+			return "warning";
+	}
+}
+
+function formatPriority(priority) {
+	if (!priority) return "Medium";
+	return priority.charAt(0).toUpperCase() + priority.slice(1);
 }
 
 function TaskCalendar({ tasks, onEdit }) {
@@ -253,6 +270,15 @@ function TaskCalendar({ tasks, onEdit }) {
 									<span className="min-w-0 flex-1">
 										<span className="block truncate text-sm font-semibold text-(--page-fg)">
 											{task.title}
+										</span>
+										<span className="mt-1 inline-flex items-center gap-2">
+											<Badge
+												variant={getPriorityVariant(
+													task.priority ?? "medium",
+												)}
+											>
+												{formatPriority(task.priority)}
+											</Badge>
 										</span>
 										<span className="mt-1 block text-xs text-(--muted)">
 											{task.status} ·{" "}

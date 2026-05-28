@@ -82,7 +82,7 @@ function TaskGrid({
 						)
 					}
 					onDrop={(event) => handleDrop(event, column.value)}
-					className={`rounded-3xl border border-(--border-color) bg-(--surface-2) p-4 transition ${dragOverStatus === column.value ? "ring-2 ring-(--primary)" : ""}`}
+					className={`rounded-3xl border border-(--border-color) bg-(--surface-2) p-4 transition-all duration-200 ease-out ${dragOverStatus === column.value ? "scale-[1.01] ring-2 ring-(--primary)" : ""}`}
 				>
 					<div className="mb-4 flex items-center justify-between gap-3">
 						<div>
@@ -118,7 +118,7 @@ function TaskGrid({
 									handleDragStart(event, task)
 								}
 								onDragEnd={() => setDragOverStatus(null)}
-								className="cursor-grab active:cursor-grabbing"
+								className="cursor-grab transition-transform duration-200 ease-out active:cursor-grabbing"
 							>
 								<TaskCard
 									task={task}

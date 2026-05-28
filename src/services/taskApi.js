@@ -1,5 +1,4 @@
 import { demoTaskSeed, demoUserSeed } from "../data/mockTasks.js";
-import { taskSections } from "../data/taskSections.js";
 
 const API_BASE_URL =
 	import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/$/, "") ?? "";
@@ -10,6 +9,9 @@ const storageKeys = {
 	users: "task-flow.users",
 	tasks: "task-flow.tasks",
 };
+
+const validPriorities = new Set(["high", "medium", "low"]);
+const SHARED_BOARD_ID = "6a17f230353b560a212cc643";
 
 const isBrowser = typeof window !== "undefined";
 export const connectionMode = API_BASE_URL ? "backend" : "local";
@@ -71,11 +73,21 @@ function ensureLocalUsers() {
 function ensureLocalTasks() {
 	const storedTasks = readStorage(storageKeys.tasks, []);
 	if (storedTasks.length > 0) {
-		return storedTasks;
+		const nextTasks = storedTasks.map((task) =>
+			normalizeTask({
+				...task,
+				boardId: SHARED_BOARD_ID,
+			}),
+		);
+		if (storedTasks.some((task) => task.boardId !== SHARED_BOARD_ID)) {
+			persistTasks(nextTasks);
+		}
+		return nextTasks;
 	}
 
-	writeStorage(storageKeys.tasks, demoTaskSeed);
-	return demoTaskSeed;
+	const nextTasks = demoTaskSeed.map((task) => normalizeTask(task));
+	writeStorage(storageKeys.tasks, nextTasks);
+	return nextTasks;
 }
 
 function persistUsers(users) {
@@ -112,21 +124,10 @@ function normalizeUser(user) {
 }
 
 function normalizeTask(task) {
-	const section = task.section ?? "backlog";
-	const normalizedSection = taskSections.some(
-		(item) => item.value === section,
-	)
-		? section
-		: "backlog";
+	const priority = validPriorities.has(task.priority)
+		? task.priority
+		: "medium";
 	const assignee = task.assignee ?? null;
-	const assigneeId =
-		task.assigneeId ??
-		assignee?.id ??
-		assignee?._id ??
-		task.ownerId ??
-		task.owner ??
-		null;
-	const assigneeName = task.assigneeName ?? assignee?.name ?? null;
 
 	return {
 		id: task.id ?? crypto.randomUUID(),
@@ -134,10 +135,9 @@ function normalizeTask(task) {
 		description: task.description.trim(),
 		dueDate: task.dueDate,
 		status: task.status === "completed" ? "completed" : "pending",
-		section: normalizedSection,
-		ownerId: task.ownerId,
-		assigneeId,
-		assigneeName,
+		priority,
+		board: task.board ?? task.boardId ?? SHARED_BOARD_ID,
+		boardId: task.boardId ?? task.board ?? SHARED_BOARD_ID,
 		assignee,
 		createdAt: task.createdAt ?? new Date().toISOString(),
 		updatedAt: task.updatedAt ?? new Date().toISOString(),
@@ -219,9 +219,9 @@ async function signupLocal({ name, email, password }) {
 	return sessionUser;
 }
 
-async function fetchLocalTasks(userId) {
+async function fetchLocalTasks() {
 	const tasks = ensureLocalTasks();
-	return tasks.filter((task) => task.ownerId === userId);
+	return tasks.filter((task) => task.boardId === SHARED_BOARD_ID);
 }
 
 async function fetchLocalUsers() {
@@ -236,6 +236,7 @@ async function createLocalTask(userId, values) {
 	const createdTask = normalizeTask({
 		...values,
 		ownerId: userId,
+		boardId: SHARED_BOARD_ID,
 	});
 	const nextTasks = [createdTask, ...tasks];
 	persistTasks(nextTasks);
@@ -300,7 +301,7 @@ export async function getCurrentUser() {
 
 export async function getTasks(userId) {
 	if (API_BASE_URL) {
-		const data = await apiRequest("/tasks");
+		const data = await apiRequest(`/tasks`);
 		const tasks = Array.isArray(data) ? data : (data?.tasks ?? []);
 		return tasks.map(normalizeTask);
 	}
@@ -338,9 +339,23 @@ export async function getUsers() {
 
 export async function addTask(userId, payload) {
 	if (API_BASE_URL) {
+		const normalizedPriority =
+			typeof payload?.priority === "string"
+				? payload.priority.toLowerCase()
+				: payload?.priority;
+		const requestPayload = {
+			...payload,
+			priority: validPriorities.has(normalizedPriority)
+				? normalizedPriority
+				: "medium",
+			boardId: payload?.boardId ?? payload?.board ?? SHARED_BOARD_ID,
+			board: payload?.board ?? payload?.boardId ?? SHARED_BOARD_ID,
+			status: payload?.status === "completed" ? "completed" : "pending",
+		};
+
 		const data = await apiRequest("/tasks", {
 			method: "POST",
-			body: JSON.stringify(payload),
+			body: JSON.stringify(requestPayload),
 		});
 
 		return normalizeTask(data?.task ?? data);
@@ -351,9 +366,37 @@ export async function addTask(userId, payload) {
 
 export async function editTask(taskId, payload) {
 	if (API_BASE_URL) {
+		const normalizedPriority =
+			typeof payload?.priority === "string"
+				? payload.priority.toLowerCase()
+				: payload?.priority;
+		const requestPayload = {
+			...payload,
+			status: payload?.status === "completed" ? "completed" : "pending",
+			...(payload?.priority
+				? {
+						priority: validPriorities.has(normalizedPriority)
+							? normalizedPriority
+							: "medium",
+					}
+				: {}),
+			...(payload?.board || payload?.boardId
+				? {
+						boardId:
+							payload?.boardId ??
+							payload?.board ??
+							SHARED_BOARD_ID,
+						board:
+							payload?.board ??
+							payload?.boardId ??
+							SHARED_BOARD_ID,
+					}
+				: {}),
+		};
+
 		const data = await apiRequest(`/tasks/${taskId}`, {
 			method: "PATCH",
-			body: JSON.stringify(payload),
+			body: JSON.stringify(requestPayload),
 		});
 
 		return normalizeTask(data?.task ?? data);

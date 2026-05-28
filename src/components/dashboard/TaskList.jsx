@@ -10,6 +10,22 @@ import { Button } from "../ui/button.jsx";
 import { Badge } from "../ui/badge.jsx";
 import { DataTable } from "../ui/data-table.jsx";
 
+function getPriorityVariant(priority) {
+	switch (priority) {
+		case "high":
+			return "destructive";
+		case "low":
+			return "secondary";
+		default:
+			return "warning";
+	}
+}
+
+function formatPriority(priority) {
+	if (!priority) return "Medium";
+	return priority.charAt(0).toUpperCase() + priority.slice(1);
+}
+
 function EmptyState({ onCreate }) {
 	return (
 		<div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-(--border-color) bg-(--surface-2) px-6 py-16 text-center">
@@ -72,6 +88,16 @@ function TaskList({ tasks, onCreate, onEdit, onDelete, onToggleStatus }) {
 							: "No due date"}
 					</span>
 				</div>
+			),
+		},
+		{
+			key: "priority",
+			header: "Priority",
+			headerClassName: "w-[12%]",
+			cell: (task) => (
+				<Badge variant={getPriorityVariant(task.priority ?? "medium")}>
+					{formatPriority(task.priority)}
+				</Badge>
 			),
 		},
 		{

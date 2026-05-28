@@ -9,8 +9,15 @@ import {
 	updateTask as updateTaskRecord,
 } from "../services/dataService.js";
 
+const SHARED_BOARD_ID = "6a17f230353b560a212cc643";
+
 export const getTasks = asyncHandler(async (req, res) => {
-	const tasks = await listTasks(req.user.id, req.query.status);
+	const boardId = req.query.boardId ?? req.query.board ?? SHARED_BOARD_ID;
+	console.info("GET /api/tasks", {
+		boardId,
+		status: req.query.status ?? null,
+	});
+	const tasks = await listTasks(req.user.id, boardId, req.query.status);
 
 	res.status(200).json({ tasks });
 });
@@ -27,8 +34,16 @@ export const getTaskById = asyncHandler(async (req, res) => {
 });
 
 export const createTask = asyncHandler(async (req, res) => {
-	const { title, description, dueDate, status, section, assigneeId } =
-		req.body;
+	const {
+		title,
+		description,
+		dueDate,
+		status,
+		priority,
+		section,
+		assigneeId,
+	} = req.body;
+	const boardId = req.body.boardId ?? req.body.board ?? SHARED_BOARD_ID;
 
 	if (!title || !description || !dueDate) {
 		throw new ApiError(400, "Title, description, and dueDate are required");
@@ -40,10 +55,12 @@ export const createTask = asyncHandler(async (req, res) => {
 	}
 
 	const task = await createTaskRecord(req.user.id, {
+		boardId,
 		title,
 		description,
 		dueDate,
 		status,
+		priority,
 		section,
 		assigneeId: assignee.id ?? assignee._id?.toString?.() ?? req.user.id,
 	});
@@ -53,17 +70,19 @@ export const createTask = asyncHandler(async (req, res) => {
 
 export const updateTask = asyncHandler(async (req, res) => {
 	const { id } = req.params;
-	if (req.body.assigneeId || req.body.assignee) {
-		const assignee = await findUserById(
-			req.body.assigneeId || req.body.assignee,
-		);
+	const assigneeId =
+		req.body.assigneeId ?? req.body.assignee?.id ?? req.body.assignee;
+	if (assigneeId) {
+		const assignee = await findUserById(assigneeId);
 		if (!assignee) {
 			throw new ApiError(404, "Assignee not found");
 		}
 	}
+	const restBody = { ...req.body };
+	delete restBody.assignee;
 	const task = await updateTaskRecord(req.user.id, id, {
-		...req.body,
-		assigneeId: req.body.assigneeId || req.body.assignee,
+		...restBody,
+		assigneeId,
 	});
 
 	if (!task) {

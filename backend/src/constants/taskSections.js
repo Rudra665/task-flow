@@ -1,5 +1,5 @@
-export const taskSections = ["backlog", "todo", "in-progress", "review"];
+export const taskSections = ["pending", "completed"];
 
 export function normalizeTaskSection(section) {
-	return taskSections.includes(section) ? section : "backlog";
+	return section === "completed" ? "completed" : "pending";
 }

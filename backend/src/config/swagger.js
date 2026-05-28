@@ -55,6 +55,22 @@ export const swaggerSpec = {
 					dueDate: { type: "string", format: "date-time" },
 					status: { type: "string", enum: ["pending", "completed"] },
 					owner: { type: "string" },
+					assignee: {
+						type: "object",
+						nullable: true,
+						properties: {
+							id: { type: "string" },
+							name: { type: "string" },
+							email: { type: "string" },
+						},
+					},
+					priority: {
+						type: "string",
+						enum: ["high", "medium", "low"],
+					},
+					board: { type: "string" },
+					createdAt: { type: "string", format: "date-time" },
+					updatedAt: { type: "string", format: "date-time" },
 				},
 			},
 			Error: {
@@ -239,6 +255,12 @@ export const swaggerSpec = {
 										type: "string",
 										enum: ["pending", "completed"],
 									},
+									priority: {
+										type: "string",
+										enum: ["high", "medium", "low"],
+									},
+									boardId: { type: "string" },
+									assigneeId: { type: "string" },
 								},
 							},
 						},
@@ -309,6 +331,11 @@ export const swaggerSpec = {
 										type: "string",
 										enum: ["pending", "completed"],
 									},
+									priority: {
+										type: "string",
+										enum: ["high", "medium", "low"],
+									},
+									assigneeId: { type: "string" },
 								},
 							},
 						},

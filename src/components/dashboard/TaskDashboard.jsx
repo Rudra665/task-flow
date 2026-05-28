@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "../ui/button.jsx";
-import { Card, CardContent } from "../ui/card.jsx";
 import { Input } from "../ui/input.jsx";
 import { Select } from "../ui/select.jsx";
 import { StatsOverview } from "./StatsOverview.jsx";
@@ -21,7 +20,6 @@ import { TaskFormDialog } from "./TaskFormDialog.jsx";
 import { TaskGrid } from "./TaskGrid.jsx";
 import { TaskList } from "./TaskList.jsx";
 import { useTaskApp } from "../../context/TaskContext.jsx";
-import { getTaskSectionLabel } from "../../data/taskSections.js";
 
 function TaskDashboard({
 	user,
@@ -40,7 +38,6 @@ function TaskDashboard({
 	const [editingTask, setEditingTask] = useState(null);
 	const [viewMode, setViewMode] = useState("grid");
 	const [query, setQuery] = useState("");
-	const [sortBy, setSortBy] = useState("dueDate");
 	const [assigneeFilter, setAssigneeFilter] = useState("all");
 	const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 	const { theme, toggleTheme } = useTaskApp();
@@ -61,6 +58,11 @@ function TaskDashboard({
 
 	const displayedTasks = useMemo(() => {
 		const filtered = tasks.filter((task) => {
+			const taskStatus = (task.status ?? "").toLowerCase();
+			if (filter !== "all" && taskStatus !== filter) {
+				return false;
+			}
+
 			const taskAssigneeId =
 				task.assigneeId ?? task.assignee?.id ?? task.ownerId;
 			if (assigneeFilter !== "all" && taskAssigneeId !== assigneeFilter) {
@@ -68,49 +70,12 @@ function TaskDashboard({
 			}
 
 			const searchText =
-				`${task.title} ${task.description} ${task.status} ${task.section ?? ""} ${getTaskSectionLabel(task.section ?? "backlog")} ${task.assigneeName ?? task.assignee?.name ?? ""}`.toLowerCase();
+				`${task.title} ${task.description} ${task.status} ${task.priority ?? ""} ${task.assigneeName ?? task.assignee?.name ?? ""}`.toLowerCase();
 			return searchText.includes(query.toLowerCase());
 		});
 
-		return [...filtered].sort((first, second) => {
-			if (sortBy === "dueDate") {
-				const firstDate = new Date(
-					first.dueDate ?? first.updatedAt ?? 0,
-				).getTime();
-				const secondDate = new Date(
-					second.dueDate ?? second.updatedAt ?? 0,
-				).getTime();
-				return firstDate - secondDate;
-			}
-
-			if (sortBy === "title") {
-				return first.title.localeCompare(second.title);
-			}
-
-			if (sortBy === "status") {
-				return first.status.localeCompare(second.status);
-			}
-
-			if (sortBy === "assignee") {
-				const firstAssignee = (
-					first.assigneeName ??
-					first.assignee?.name ??
-					""
-				).toLowerCase();
-				const secondAssignee = (
-					second.assigneeName ??
-					second.assignee?.name ??
-					""
-				).toLowerCase();
-				return (
-					firstAssignee.localeCompare(secondAssignee) ||
-					first.title.localeCompare(second.title)
-				);
-			}
-
-			return 0;
-		});
-	}, [assigneeFilter, query, sortBy, tasks]);
+		return filtered;
+	}, [assigneeFilter, filter, query, tasks]);
 
 	const openCreateDialog = () => {
 		setEditingTask(null);
@@ -129,12 +94,13 @@ function TaskDashboard({
 
 	const closeMobileNav = () => setIsMobileNavOpen(false);
 
-	const handleSubmit = async (taskValues) => {
-		if (editingTask) {
+	const handleSubmit = async (taskValues, isEditing) => {
+		if (isEditing && editingTask) {
 			await onUpdateTask(editingTask.id, {
 				...editingTask,
 				...taskValues,
 			});
+			return;
 		}
 
 		await onCreateTask(taskValues);
@@ -173,48 +139,34 @@ function TaskDashboard({
 						</div>
 					</div>
 
-					<div className="mt-6 rounded-[1.75rem] border border-(--border-color) bg-(--surface-2) p-4 shadow-sm lg:hidden">
-						<div className="flex items-center gap-3 rounded-2xl border border-(--border-color) bg-(--surface) px-3 py-2 text-sm text-(--muted)">
-							<Search className="h-4 w-4 shrink-0" />
-							<Input
-								className="h-8 border-0 bg-transparent px-0 text-sm text-(--page-fg) shadow-none focus:ring-0"
-								placeholder="Search Task"
-								value={query}
-								onChange={(event) =>
-									setQuery(event.target.value)
-								}
-							/>
+					<div className="mt-4 flex items-center gap-3">
+						<div
+							className="flex h-10 w-10 items-center justify-center rounded-full bg-(--primary) text-sm font-semibold text-white shadow-lg shadow-(color:--shadow-color)"
+							title={user.name}
+							aria-label={`Profile ${user.name}`}
+						>
+							{user.name.slice(0, 1).toUpperCase()}
 						</div>
-
-						<div className="mt-4 flex items-center gap-3">
-							<div
-								className="flex h-10 w-10 items-center justify-center rounded-full bg-(--primary) text-sm font-semibold text-white shadow-lg shadow-(color:--shadow-color)"
-								title={user.name}
-								aria-label={`Profile ${user.name}`}
-							>
-								{user.name.slice(0, 1).toUpperCase()}
-							</div>
-							<Button
-								variant="outline"
-								size="icon"
-								onClick={toggleTheme}
-								aria-label="Toggle theme"
-							>
-								{theme === "dark" ? (
-									<Sun className="h-4 w-4" />
-								) : (
-									<Moon className="h-4 w-4" />
-								)}
-							</Button>
-							<Button
-								variant="outline"
-								size="icon"
-								onClick={onLogout}
-								aria-label="Logout"
-							>
-								<LogOut className="h-4 w-4" />
-							</Button>
-						</div>
+						<Button
+							variant="outline"
+							size="icon"
+							onClick={toggleTheme}
+							aria-label="Toggle theme"
+						>
+							{theme === "dark" ? (
+								<Sun className="h-4 w-4" />
+							) : (
+								<Moon className="h-4 w-4" />
+							)}
+						</Button>
+						<Button
+							variant="outline"
+							size="icon"
+							onClick={onLogout}
+							aria-label="Logout"
+						>
+							<LogOut className="h-4 w-4" />
+						</Button>
 					</div>
 
 					<nav className="mt-10 space-y-2">
@@ -289,17 +241,6 @@ function TaskDashboard({
 							</div>
 
 							<div className="flex items-center gap-3">
-								<div className="hidden min-w-76 items-center gap-2 rounded-full border border-(--border-color) bg-(--surface-2) px-3 py-2 text-sm text-(--muted) sm:flex">
-									<Search className="h-4 w-4" />
-									<Input
-										className="h-8 border-0 bg-transparent px-0 text-sm text-(--page-fg) shadow-none focus:ring-0"
-										placeholder="Search Task"
-										value={query}
-										onChange={(event) =>
-											setQuery(event.target.value)
-										}
-									/>
-								</div>
 								<Button
 									variant="outline"
 									size="icon"
@@ -321,19 +262,7 @@ function TaskDashboard({
 						</div>
 					</header>
 
-					<div className="mb-6 grid gap-4 lg:grid-cols-[1fr_auto_auto] lg:items-center">
-						<div className="flex items-center gap-3 rounded-2xl border border-(--border-color) bg-(--surface) px-4 py-3 shadow-sm sm:hidden">
-							<Search className="h-4 w-4 text-(--muted)" />
-							<input
-								className="w-full border-0 bg-transparent text-sm text-(--page-fg) outline-none placeholder:text-(--muted-2)"
-								placeholder="Search Task"
-								value={query}
-								onChange={(event) =>
-									setQuery(event.target.value)
-								}
-							/>
-						</div>
-
+					<div className="mb-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
 						<div className="flex flex-wrap items-center gap-3">
 							<TaskFilters
 								filter={filter}
@@ -342,10 +271,10 @@ function TaskDashboard({
 							/>
 						</div>
 
-						<div className="flex items-center gap-2">
+						<div className="grid grid-cols-5 gap-2 sm:grid-cols-[2fr_3fr_auto] sm:items-center">
 							<Select
 								value={assigneeFilter}
-								className="w-full sm:w-auto"
+								className="col-span-2 w-full sm:col-span-1"
 								onChange={(event) =>
 									setAssigneeFilter(event.target.value)
 								}
@@ -357,24 +286,20 @@ function TaskDashboard({
 									</option>
 								))}
 							</Select>
-							<Select
-								value={sortBy}
-								onChange={(event) =>
-									setSortBy(event.target.value)
-								}
-							>
-								<option value="dueDate">
-									Sort By: Due Date
-								</option>
-								<option value="title">Sort By: Title</option>
-								<option value="status">Sort By: Status</option>
-								<option value="assignee">
-									Sort By: Assignee
-								</option>
-							</Select>
+							<div className="col-span-3 flex items-center gap-2 rounded-2xl border border-(--border-color) bg-(--surface) px-3 py-2 text-sm text-(--muted) sm:col-span-1">
+								<Search className="h-4 w-4 shrink-0" />
+								<Input
+									className="h-8 border-0 bg-transparent px-0 text-sm text-(--page-fg) shadow-none focus:ring-0"
+									placeholder="Search Task"
+									value={query}
+									onChange={(event) =>
+										setQuery(event.target.value)
+									}
+								/>
+							</div>
 							<Button
 								onClick={openCreateDialog}
-								className=" shrink-0"
+								className="col-span-5 w-full shrink-0 sm:col-span-1 sm:w-auto"
 								variant="default"
 							>
 								<Plus className="h-4 w-4" /> Add task
@@ -450,18 +375,6 @@ function TaskDashboard({
 							/>
 						)}
 					</div>
-
-					<Card className="mt-6 border-(--border-color) bg-(--surface) shadow-sm lg:hidden">
-						<CardContent className="space-y-4 p-5">
-							<Button
-								variant="outline"
-								onClick={closeMobileNav}
-								className="w-full"
-							>
-								Close menu
-							</Button>
-						</CardContent>
-					</Card>
 				</main>
 			</div>
 

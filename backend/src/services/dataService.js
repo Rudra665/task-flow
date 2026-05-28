@@ -4,12 +4,34 @@ import { randomUUID } from "node:crypto";
 import { User } from "../models/User.js";
 import { Task } from "../models/Task.js";
 import { getDatabaseMode } from "../config/db.js";
-import { normalizeTaskSection } from "../constants/taskSections.js";
 
 const memoryState = {
 	users: [],
 	tasks: [],
 };
+
+const SHARED_BOARD_ID = "6a17f230353b560a212cc643";
+let sharedBoardOwnershipMigrated = false;
+
+async function ensureSharedBoardOwnership() {
+	if (getDatabaseMode() === "mongo") {
+		if (sharedBoardOwnershipMigrated) return;
+
+		await Task.updateMany(
+			{ board: { $exists: false } },
+			{ $set: { board: SHARED_BOARD_ID } },
+		);
+		sharedBoardOwnershipMigrated = true;
+		return;
+	}
+
+	if (memoryState.tasks.some((task) => task.board !== SHARED_BOARD_ID)) {
+		memoryState.tasks = memoryState.tasks.map((task) => ({
+			...task,
+			board: SHARED_BOARD_ID,
+		}));
+	}
+}
 
 function serializeUser(user) {
 	if (!user) return null;
@@ -47,8 +69,11 @@ function serializeTask(task) {
 		description: task.description,
 		dueDate: task.dueDate,
 		status: task.status,
-		section: normalizeTaskSection(task.section),
+		priority: ["high", "medium", "low"].includes(task.priority)
+			? task.priority
+			: "medium",
 		owner: task.owner ?? task.ownerId ?? task.owner?.toString(),
+		board: task.board ?? task.boardId ?? SHARED_BOARD_ID,
 		assignee: assignee
 			? {
 					id: assigneeId,
@@ -56,8 +81,6 @@ function serializeTask(task) {
 					email: assigneeEmail,
 				}
 			: null,
-		assigneeId,
-		assigneeName,
 		createdAt: task.createdAt,
 		updatedAt: task.updatedAt,
 	};
@@ -70,8 +93,9 @@ function normalizeMongoTask(doc) {
 		description: doc.description,
 		dueDate: doc.dueDate,
 		status: doc.status,
-		section: doc.section,
+		priority: doc.priority,
 		owner: doc.owner.toString(),
+		board: doc.board ?? SHARED_BOARD_ID,
 		assignee: doc.assignee,
 		createdAt: doc.createdAt,
 		updatedAt: doc.updatedAt,
@@ -155,14 +179,24 @@ export function toPublicUser(user) {
 }
 
 async function createMongoTask(ownerId, payload) {
+	const boardId = payload.boardId ?? payload.board ?? SHARED_BOARD_ID;
+	const normalizedPriority =
+		typeof payload.priority === "string"
+			? payload.priority.toLowerCase()
+			: payload.priority;
+	const status = payload.status === "completed" ? "completed" : "pending";
+
 	const task = await Task.create({
 		owner: ownerId,
+		board: boardId,
 		assignee: payload.assigneeId ?? ownerId,
 		title: payload.title,
 		description: payload.description,
 		dueDate: payload.dueDate,
-		status: payload.status === "completed" ? "completed" : "pending",
-		section: normalizeTaskSection(payload.section),
+		status,
+		priority: ["high", "medium", "low"].includes(normalizedPriority)
+			? normalizedPriority
+			: "medium",
 	});
 
 	await task.populate("assignee", "name email role");
@@ -170,16 +204,25 @@ async function createMongoTask(ownerId, payload) {
 }
 
 async function createMemoryTask(ownerId, payload) {
+	const boardId = payload.boardId ?? payload.board ?? SHARED_BOARD_ID;
+	const normalizedPriority =
+		typeof payload.priority === "string"
+			? payload.priority.toLowerCase()
+			: payload.priority;
+	const status = payload.status === "completed" ? "completed" : "pending";
 	const now = new Date().toISOString();
 	const task = {
 		id: randomUUID(),
 		owner: ownerId,
+		board: boardId,
 		assignee: payload.assigneeId ?? ownerId,
 		title: payload.title,
 		description: payload.description,
 		dueDate: payload.dueDate,
-		status: payload.status === "completed" ? "completed" : "pending",
-		section: normalizeTaskSection(payload.section),
+		status,
+		priority: ["high", "medium", "low"].includes(normalizedPriority)
+			? normalizedPriority
+			: "medium",
 		createdAt: now,
 		updatedAt: now,
 	};
@@ -189,6 +232,8 @@ async function createMemoryTask(ownerId, payload) {
 }
 
 export async function createTask(ownerId, payload) {
+	await ensureSharedBoardOwnership();
+
 	if (getDatabaseMode() === "mongo") {
 		return createMongoTask(ownerId, payload);
 	}
@@ -196,9 +241,11 @@ export async function createTask(ownerId, payload) {
 	return createMemoryTask(ownerId, payload);
 }
 
-export async function listTasks(ownerId, status) {
+export async function listTasks(ownerId, board, status) {
+	await ensureSharedBoardOwnership();
+
 	if (getDatabaseMode() === "mongo") {
-		const query = { owner: ownerId };
+		const query = { board: board ?? SHARED_BOARD_ID };
 		if (status && ["pending", "completed"].includes(status)) {
 			query.status = status;
 		}
@@ -212,7 +259,8 @@ export async function listTasks(ownerId, status) {
 	return memoryState.tasks
 		.filter(
 			(task) =>
-				task.owner === ownerId && (!status || task.status === status),
+				task.board === (board ?? SHARED_BOARD_ID) &&
+				(!status || task.status === status),
 		)
 		.sort(
 			(left, right) =>
@@ -222,14 +270,19 @@ export async function listTasks(ownerId, status) {
 }
 
 export async function findTaskById(ownerId, id) {
+	await ensureSharedBoardOwnership();
+
 	if (getDatabaseMode() === "mongo") {
 		if (!mongoose.isValidObjectId(id)) return null;
-		const task = await Task.findOne({ _id: id, owner: ownerId });
+		const task = await Task.findOne({
+			_id: id,
+			board: SHARED_BOARD_ID,
+		});
 		return task ? normalizeMongoTask(task) : null;
 	}
 
 	const task = memoryState.tasks.find(
-		(item) => item.id === id && item.owner === ownerId,
+		(item) => item.id === id && item.board === SHARED_BOARD_ID,
 	);
 	return task ? serializeTask(task) : null;
 }
@@ -246,19 +299,30 @@ export async function listUsers() {
 }
 
 export async function updateTask(ownerId, id, payload) {
+	await ensureSharedBoardOwnership();
+	const normalizedPriority =
+		typeof payload.priority === "string"
+			? payload.priority.toLowerCase()
+			: payload.priority;
+	const nextStatus = ["pending", "completed"].includes(payload.status)
+		? payload.status
+		: null;
+
 	if (getDatabaseMode() === "mongo") {
 		if (!mongoose.isValidObjectId(id)) return null;
-		const task = await Task.findOne({ _id: id, owner: ownerId });
+		const task = await Task.findOne({
+			_id: id,
+			board: SHARED_BOARD_ID,
+		});
 		if (!task) return null;
 
 		if (typeof payload.title === "string") task.title = payload.title;
 		if (typeof payload.description === "string")
 			task.description = payload.description;
 		if (payload.dueDate) task.dueDate = payload.dueDate;
-		if (["pending", "completed"].includes(payload.status))
-			task.status = payload.status;
-		if (payload.section)
-			task.section = normalizeTaskSection(payload.section);
+		if (nextStatus) task.status = nextStatus;
+		if (["high", "medium", "low"].includes(normalizedPriority))
+			task.priority = normalizedPriority;
 		if (payload.assigneeId) task.assignee = payload.assigneeId;
 
 		const updatedTask = await task.save();
@@ -267,7 +331,7 @@ export async function updateTask(ownerId, id, payload) {
 	}
 
 	const index = memoryState.tasks.findIndex(
-		(item) => item.id === id && item.owner === ownerId,
+		(item) => item.id === id && item.board === SHARED_BOARD_ID,
 	);
 	if (index === -1) return null;
 
@@ -279,11 +343,10 @@ export async function updateTask(ownerId, id, payload) {
 			? { description: payload.description }
 			: {}),
 		...(payload.dueDate ? { dueDate: payload.dueDate } : {}),
-		...(payload.status && ["pending", "completed"].includes(payload.status)
-			? { status: payload.status }
-			: {}),
-		...(payload.section
-			? { section: normalizeTaskSection(payload.section) }
+		...(nextStatus ? { status: nextStatus } : {}),
+		...(normalizedPriority &&
+		["high", "medium", "low"].includes(normalizedPriority)
+			? { priority: normalizedPriority }
 			: {}),
 		...(payload.assigneeId ? { assignee: payload.assigneeId } : {}),
 		updatedAt: new Date().toISOString(),
@@ -294,15 +357,20 @@ export async function updateTask(ownerId, id, payload) {
 }
 
 export async function removeTask(ownerId, id) {
+	await ensureSharedBoardOwnership();
+
 	if (getDatabaseMode() === "mongo") {
 		if (!mongoose.isValidObjectId(id)) return false;
-		const result = await Task.findOneAndDelete({ _id: id, owner: ownerId });
+		const result = await Task.findOneAndDelete({
+			_id: id,
+			board: SHARED_BOARD_ID,
+		});
 		return Boolean(result);
 	}
 
 	const before = memoryState.tasks.length;
 	memoryState.tasks = memoryState.tasks.filter(
-		(item) => !(item.id === id && item.owner === ownerId),
+		(item) => !(item.id === id && item.board === SHARED_BOARD_ID),
 	);
 	return memoryState.tasks.length !== before;
 }

@@ -12,15 +12,20 @@ import { Input } from "../ui/input.jsx";
 import { Select } from "../ui/select.jsx";
 import { Textarea } from "../ui/textarea.jsx";
 import { useTaskApp } from "../../context/TaskContext.jsx";
-import { taskSections } from "../../data/taskSections.js";
 
 const initialForm = {
 	title: "",
 	description: "",
 	dueDate: "",
 	status: "pending",
-	section: "backlog",
+	priority: "medium",
 };
+
+const priorityOptions = [
+	{ value: "high", label: "High" },
+	{ value: "medium", label: "Medium" },
+	{ value: "low", label: "Low" },
+];
 
 function formatDateForInput(dateValue) {
 	if (!dateValue) return "";
@@ -48,7 +53,7 @@ function TaskFormDialog({
 					description: task.description ?? "",
 					dueDate: formatDateForInput(task.dueDate),
 					status: task.status ?? "pending",
-					section: task.section ?? "backlog",
+					priority: task.priority ?? "medium",
 					assigneeId:
 						task.assigneeId ??
 						task.assignee?.id ??
@@ -93,12 +98,12 @@ function TaskFormDialog({
 			nextErrors.dueDate = "Due date is required.";
 		}
 
-		if (!taskSections.some((item) => item.value === values.section)) {
-			nextErrors.section = "Choose a valid board section.";
-		}
-
 		if (!values.assigneeId) {
 			nextErrors.assigneeId = "Assign the task to a user.";
+		}
+
+		if (!priorityOptions.some((item) => item.value === values.priority)) {
+			nextErrors.priority = "Choose a valid priority.";
 		}
 
 		if (!["pending", "completed"].includes(values.status)) {
@@ -116,14 +121,16 @@ function TaskFormDialog({
 
 		setIsSubmitting(true);
 		try {
-			await onSubmit({
+			const payload = {
 				title: values.title.trim(),
 				description: values.description.trim(),
 				dueDate: values.dueDate,
 				status: values.status,
-				section: values.section,
+				priority: values.priority,
 				assigneeId: values.assigneeId,
-			});
+			};
+
+			await onSubmit(payload, isEditing);
 			onClose();
 		} finally {
 			setIsSubmitting(false);
@@ -270,6 +277,38 @@ function TaskFormDialog({
 									{errors.status ? (
 										<p className="mt-2 text-sm text-rose-300">
 											{errors.status}
+										</p>
+									) : null}
+								</div>
+
+								<div>
+									<label className="mb-2 block text-sm font-medium text-(--page-fg)">
+										Priority
+									</label>
+									<div className="relative">
+										<Select
+											value={values.priority}
+											onChange={handleChange("priority")}
+											className={`${fieldSurfaceClass} appearance-none pr-12`}
+										>
+											{priorityOptions.map((item) => (
+												<option
+													key={item.value}
+													value={item.value}
+												>
+													{item.label}
+												</option>
+											))}
+										</Select>
+										<div
+											className={`pointer-events-none absolute inset-y-0 right-2 my-auto flex h-8 w-8 items-center justify-center rounded-lg border ${iconButtonClass}`}
+										>
+											<ChevronDown className="h-4 w-4" />
+										</div>
+									</div>
+									{errors.priority ? (
+										<p className="mt-2 text-sm text-rose-300">
+											{errors.priority}
 										</p>
 									) : null}
 								</div>

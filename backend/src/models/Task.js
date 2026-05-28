@@ -1,11 +1,16 @@
 import mongoose from "mongoose";
-import { taskSections } from "../constants/taskSections.js";
 
 const taskSchema = new mongoose.Schema(
 	{
 		owner: {
 			type: mongoose.Schema.Types.ObjectId,
 			ref: "User",
+			required: true,
+			index: true,
+		},
+		board: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: "Board",
 			required: true,
 			index: true,
 		},
@@ -34,10 +39,10 @@ const taskSchema = new mongoose.Schema(
 			enum: ["pending", "completed"],
 			default: "pending",
 		},
-		section: {
+		priority: {
 			type: String,
-			enum: taskSections,
-			default: "backlog",
+			enum: ["high", "medium", "low"],
+			default: "medium",
 		},
 	},
 	{ timestamps: true },

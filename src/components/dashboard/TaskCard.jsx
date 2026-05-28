@@ -19,14 +19,31 @@ function formatDate(dateValue) {
 	}).format(new Date(dateValue));
 }
 
+function getPriorityVariant(priority) {
+	switch (priority) {
+		case "high":
+			return "destructive";
+		case "low":
+			return "secondary";
+		default:
+			return "warning";
+	}
+}
+
+function formatPriority(priority) {
+	if (!priority) return "Medium";
+	return priority.charAt(0).toUpperCase() + priority.slice(1);
+}
+
 function TaskCard({ task, onEdit, onDelete, onToggleStatus }) {
 	const { theme } = useTaskApp();
 	const statusTone = task.status === "completed" ? "success" : "warning";
+	const priorityTone = getPriorityVariant(task.priority ?? "medium");
 	const dark = theme === "dark";
 
 	return (
 		<Card
-			className={`transition duration-200 hover:-translate-y-0.5 ${dark ? "border-(--border-color) bg-(--surface-2) hover:border-(--primary)/20 hover:bg-(--surface)" : "border-(--border-color) bg-(--surface) hover:border-(--primary)/20 hover:bg-(--surface-2)"}`}
+			className={`transition-all duration-200 ease-out hover:-translate-y-0.5 ${dark ? "border-(--border-color) bg-(--surface-2) hover:border-(--primary)/20 hover:bg-(--surface)" : "border-(--border-color) bg-(--surface) hover:border-(--primary)/20 hover:bg-(--surface-2)"}`}
 		>
 			<CardContent className="p-5">
 				<div className="flex flex-col gap-4">
@@ -38,6 +55,9 @@ function TaskCard({ task, onEdit, onDelete, onToggleStatus }) {
 								</h3>
 								<Badge variant={statusTone}>
 									{task.status}
+								</Badge>
+								<Badge variant={priorityTone}>
+									{formatPriority(task.priority)}
 								</Badge>
 								<Badge variant="secondary">
 									{task.assigneeName ??
