@@ -148,7 +148,7 @@ function getStoredToken() {
 	return readSession()?.token ?? readStorage(storageKeys.token, "");
 }
 
-function apiHeaders(extraHeaders = {}) {
+function apiHeaders(extraHeaders = { "Access-Control-Allow-Origin": "*" }) {
 	const token = getStoredToken();
 
 	return {

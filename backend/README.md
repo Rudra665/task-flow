@@ -26,6 +26,7 @@ Express.js + MongoDB API for the Task Flow application.
 
 - `npm run dev` — run with nodemon
 - `npm start` — run production server
+- `npm run build` — backend build check (no transpilation)
 
 ## API docs
 
@@ -37,6 +38,7 @@ Express.js + MongoDB API for the Task Flow application.
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `GET /api/auth/me`
+- `GET /api/users`
 - `GET /api/tasks`
 - `POST /api/tasks`
 - `GET /api/tasks/:id`
