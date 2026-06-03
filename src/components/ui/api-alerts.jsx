@@ -1,23 +1,33 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { X, CheckCircle2, AlertCircle } from "lucide-react";
 import { useTaskApp } from "../../context/TaskContext.jsx";
 import { Button } from "./button.jsx";
-import { Alert, AlertDescription, AlertTitle } from "./alert.jsx";
+import { Alert, AlertDescription } from "./alert.jsx";
 
 function ApiAlerts() {
-	const { error, errorType, clearError } = useTaskApp();
+	const { alerts, errorType, clearError } = useTaskApp();
 
 	const message = useMemo(() => {
-		if (!error) return "";
-		return typeof error === "string" ? error : String(error);
-	}, [error]);
+		if (!alerts) return "";
+		return typeof alerts === "string" ? alerts : String(alerts);
+	}, [alerts]);
 
 	const isSuccess = errorType === "success";
+
+	useEffect(() => {
+		if (!message) return undefined;
+
+		const timerId = window.setTimeout(() => {
+			clearError();
+		}, 3500);
+
+		return () => window.clearTimeout(timerId);
+	}, [clearError, message]);
 
 	if (!message) return null;
 
 	return (
-		<div className="fixed left-1/2 top-4 z-[100] w-[min(720px,92vw)] -translate-x-1/2 px-2">
+		<div className="fixed left-1/2 top-4 z-100 w-[min(720px,92vw)] -translate-x-1/2 px-2">
 			<Alert variant={isSuccess ? "default" : "destructive"}>
 				<div className="flex items-start justify-between gap-4">
 					<div className="flex items-start gap-3 min-w-0">
@@ -27,15 +37,6 @@ function ApiAlerts() {
 							<AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
 						)}
 						<div className="min-w-0">
-							<AlertTitle
-								className={
-									isSuccess
-										? "text-emerald-700 dark:text-emerald-300"
-										: "text-rose-700 dark:text-rose-300"
-								}
-							>
-								{isSuccess ? "Success" : "Error"}
-							</AlertTitle>
 							<AlertDescription
 								className={
 									isSuccess

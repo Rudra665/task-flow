@@ -16,6 +16,7 @@ const SHARED_BOARD_ID = "6a17f230353b560a212cc643";
 
 const isBrowser = typeof window !== "undefined";
 export const connectionMode = API_BASE_URL ? "backend" : "local";
+const sessionExpiredEventName = "task-flow:session-expired";
 
 function safeJsonParse(value, fallback) {
 	try {
@@ -38,6 +39,15 @@ function writeStorage(key, value) {
 function removeStorage(key) {
 	if (!isBrowser) return;
 	window.localStorage.removeItem(key);
+}
+
+function emitSessionExpired(message) {
+	if (!isBrowser) return;
+	window.dispatchEvent(
+		new CustomEvent(sessionExpiredEventName, {
+			detail: { message },
+		}),
+	);
 }
 
 function readSession() {
@@ -178,8 +188,28 @@ async function apiRequest(path, options = {}) {
 	});
 
 	if (!response.ok) {
-		const message = await response.text();
-		throw new Error(message || "Request failed");
+		let message = "Request failed";
+
+		try {
+			const errorData = await response.clone().json();
+			message = errorData?.message || message;
+		} catch {
+			const text = await response.text();
+			message = text || message;
+		}
+
+		if (
+			(response.status === 401 || response.status === 403) &&
+			path !== "/auth/login" &&
+			path !== "/auth/register"
+		) {
+			clearSession();
+			emitSessionExpired(message);
+		}
+
+		const error = new Error(message);
+		error.status = response.status;
+		throw error;
 	}
 
 	if (response.status === 204) return null;
@@ -398,7 +428,10 @@ export async function addTask(userId, payload) {
 			body: JSON.stringify(requestPayload),
 		});
 
-		return normalizeTask(data?.task ?? data);
+		return {
+			message: data?.message ?? "Task created successfully",
+			task: normalizeTask(data?.task ?? data),
+		};
 	}
 
 	return createLocalTask(userId, payload);
@@ -445,7 +478,10 @@ export async function editTask(taskId, payload) {
 			body: JSON.stringify(requestPayload),
 		});
 
-		return normalizeTask(data?.task ?? data);
+		return {
+			message: data?.message ?? "Task updated successfully",
+			task: normalizeTask(data?.task ?? data),
+		};
 	}
 
 	return updateLocalTask(taskId, payload);
@@ -464,13 +500,18 @@ export async function removeTask(taskId) {
 	}
 
 	if (API_BASE_URL) {
-		await apiRequest(`/tasks/${id}`, {
+		const data = await apiRequest(`/tasks/${id}`, {
 			method: "DELETE",
 		});
-		return;
+		return {
+			message: data?.message ?? "Task deleted successfully",
+		};
 	}
 
 	await deleteLocalTask(id);
+	return {
+		message: "Task deleted successfully",
+	};
 }
 
 export function clearSession() {

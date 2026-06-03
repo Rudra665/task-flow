@@ -43,7 +43,10 @@ export const getTaskById = asyncHandler(async (req, res) => {
 		throw new ApiError(404, "Task not found");
 	}
 
-	res.status(200).json(task);
+	res.status(200).json({
+		message: "Task updated successfully",
+		task,
+	});
 });
 
 export const createTask = asyncHandler(async (req, res) => {
@@ -78,7 +81,10 @@ export const createTask = asyncHandler(async (req, res) => {
 		assigneeId: assignee.id ?? assignee._id?.toString?.() ?? req.user.id,
 	});
 
-	res.status(201).json(task);
+	res.status(201).json({
+		message: "Task created successfully",
+		task,
+	});
 });
 
 export const updateTask = asyncHandler(async (req, res) => {
@@ -110,7 +116,7 @@ export const updateTask = asyncHandler(async (req, res) => {
 		throw new ApiError(404, "Task not found");
 	}
 
-	res.status(200).json(task);
+	res.status(200).json({ message: "Task updated successfully", task });
 });
 
 export const deleteTask = asyncHandler(async (req, res) => {

@@ -139,35 +139,37 @@ function TaskDashboard({
 						</div>
 					</div>
 
-					<div className="mt-4 flex items-center gap-3">
-						<div
-							className="flex h-10 w-10 items-center justify-center rounded-full bg-(--primary) text-sm font-semibold text-white shadow-lg shadow-(color:--shadow-color)"
-							title={user.name}
-							aria-label={`Profile ${user.name}`}
-						>
-							{user.name.slice(0, 1).toUpperCase()}
+					{isMobileNavOpen ? (
+						<div className="mt-4 flex items-center gap-3">
+							<div
+								className="flex h-10 w-10 items-center justify-center rounded-full bg-(--primary) text-sm font-semibold text-white shadow-lg shadow-(color:--shadow-color)"
+								title={user.name}
+								aria-label={`Profile ${user.name}`}
+							>
+								{user.name.slice(0, 1).toUpperCase()}
+							</div>
+							<Button
+								variant="outline"
+								size="icon"
+								onClick={toggleTheme}
+								aria-label="Toggle theme"
+							>
+								{theme === "dark" ? (
+									<Sun className="h-4 w-4" />
+								) : (
+									<Moon className="h-4 w-4" />
+								)}
+							</Button>
+							<Button
+								variant="outline"
+								size="icon"
+								onClick={onLogout}
+								aria-label="Logout"
+							>
+								<LogOut className="h-4 w-4" />
+							</Button>
 						</div>
-						<Button
-							variant="outline"
-							size="icon"
-							onClick={toggleTheme}
-							aria-label="Toggle theme"
-						>
-							{theme === "dark" ? (
-								<Sun className="h-4 w-4" />
-							) : (
-								<Moon className="h-4 w-4" />
-							)}
-						</Button>
-						<Button
-							variant="outline"
-							size="icon"
-							onClick={onLogout}
-							aria-label="Logout"
-						>
-							<LogOut className="h-4 w-4" />
-						</Button>
-					</div>
+					) : null}
 
 					<nav className="mt-10 space-y-2">
 						{[{ label: "Tasks", icon: List, active: true }].map(

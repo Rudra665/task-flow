@@ -20,6 +20,7 @@ const TaskContext = createContext(null);
 const initialStoredUser = getStoredSessionUser();
 const initialConnectionMode = getConnectionMode();
 const themeStorageKey = "task-flow.theme";
+const sessionExpiredEventName = "task-flow:session-expired";
 
 function getInitialTheme() {
 	if (typeof window === "undefined") {
@@ -51,7 +52,7 @@ export function TaskAppProvider({ children }) {
 	const [filter, setFilter] = useState("all");
 	const [isBootstrapping, setIsBootstrapping] = useState(true);
 	const [connectionMode] = useState(initialConnectionMode);
-	const [error, setError] = useState("");
+	const [alerts, setAlerts] = useState("");
 	const [errorType, setErrorType] = useState("error"); // ← new
 	const [theme, setTheme] = useState(getInitialTheme);
 	useEffect(() => {
@@ -64,6 +65,23 @@ export function TaskAppProvider({ children }) {
 
 	useEffect(() => {
 		let isActive = true;
+
+		function handleSessionExpired(event) {
+			if (!isActive) return;
+
+			const message =
+				event?.detail?.message ||
+				"Session expired. Please sign in again.";
+			clearSession();
+			setUser(null);
+			setUsers([]);
+			setTasks([]);
+			setFilter("all");
+			setAlerts(message);
+			setErrorType("error");
+		}
+
+		window.addEventListener(sessionExpiredEventName, handleSessionExpired);
 
 		async function bootstrap() {
 			try {
@@ -101,6 +119,10 @@ export function TaskAppProvider({ children }) {
 
 		return () => {
 			isActive = false;
+			window.removeEventListener(
+				sessionExpiredEventName,
+				handleSessionExpired,
+			);
 		};
 	}, []);
 
@@ -113,7 +135,7 @@ export function TaskAppProvider({ children }) {
 			setUsers(await getUsers());
 			const nextTasks = await getTasks(authenticatedUser.id);
 			setTasks(nextTasks);
-			setError(
+			setAlerts(
 				!authenticatedUser
 					? "Authentication failed."
 					: "Logged in successfully.",
@@ -121,7 +143,7 @@ export function TaskAppProvider({ children }) {
 			setErrorType(!authenticatedUser ? "error" : "success");
 			return authenticatedUser;
 		} catch (authError) {
-			setError(authError.message || "Unable to authenticate right now.");
+			setAlerts(authError.message || "Unable to authenticate right now.");
 			throw authError;
 		}
 	};
@@ -148,14 +170,20 @@ export function TaskAppProvider({ children }) {
 	const handleCreateTask = async (payload) => {
 		if (!user) return null;
 
-		setError("");
+		setAlerts("");
 
 		try {
-			const createdTask = await addTask(user.id, payload);
+			const createdResult = await addTask(user.id, payload);
+			const createdTask = createdResult?.task ?? createdResult;
+			const successMessage =
+				createdResult?.message || "Task created successfully.";
 			setTasks((currentTasks) => [createdTask, ...currentTasks]);
+			setAlerts(successMessage);
+			setErrorType("success");
 			return createdTask;
 		} catch (e) {
-			setError(e?.message || "Unable to create task.");
+			setAlerts(e?.message || "Unable to create task.");
+			setErrorType("error");
 			throw e;
 		}
 	};
@@ -164,7 +192,7 @@ export function TaskAppProvider({ children }) {
 	// update fails.
 	const handleUpdateTask = async (taskId, payload) => {
 		const previousTasks = tasks;
-		setError("");
+		setAlerts("");
 
 		setTasks((currentTasks) =>
 			currentTasks.map((task) =>
@@ -190,17 +218,23 @@ export function TaskAppProvider({ children }) {
 		);
 
 		try {
-			const updatedTask = await editTask(taskId, payload);
+			const updatedResult = await editTask(taskId, payload);
+			const updatedTask = updatedResult?.task ?? updatedResult;
+			const successMessage =
+				updatedResult?.message || "Task updated successfully.";
 
 			setTasks((currentTasks) =>
 				currentTasks.map((task) =>
 					task.id === taskId ? updatedTask : task,
 				),
 			);
+			setAlerts(successMessage);
+			setErrorType("success");
 			return updatedTask;
 		} catch (error) {
 			setTasks(previousTasks);
-			setError(error?.message || "Unable to update task.");
+			setAlerts(error?.message || "Unable to update task.");
+			setErrorType("error");
 			throw error;
 		}
 	};
@@ -217,9 +251,13 @@ export function TaskAppProvider({ children }) {
 		);
 
 		try {
-			await removeTask(id);
+			const deletedResult = await removeTask(id);
+			setAlerts(deletedResult?.message || "Task deleted successfully.");
+			setErrorType("success");
 		} catch (deleteError) {
 			setTasks(previousTasks);
+			setAlerts(deleteError?.message || "Unable to delete task.");
+			setErrorType("error");
 			throw deleteError;
 		}
 	};
@@ -246,10 +284,10 @@ export function TaskAppProvider({ children }) {
 		theme,
 		setTheme,
 		toggleTheme: handleToggleTheme,
-		error,
+		alerts,
 		errorType, // ← only new line here
 		clearError: () => {
-			setError("");
+			setAlerts("");
 			setErrorType("error");
 		},
 		login: (payload) => handleAuthenticate("login", payload),
